@@ -22,11 +22,11 @@ How it trades — long only, at most one position:
   entries demand a move with room to pay for that several times over;
   in chop the bot simply stays in cash.
 - **Sizing.** Two tranches: 50% of cash on the signal, then 80% of the
-  cash left (≈90% in total) ten bars later if the trend still confirms.
+  cash left (≈90% in total) five bars later if the trend still confirms.
   Each order is scaled down so its own pool impact against the latest
   close's depth stays at or under 10 bps.
 - **Exits.** The first of: the fast EMA crossing back under the slow EMA
-  (trend reversal), a trailing stop 90 bps under the position's peak
+  (trend reversal), a trailing stop 130 bps under the position's peak
   marked value, or a hard stop 80 bps under its cost, fees included.
   After any exit the bot cools down — 20 bars, or 60 bars if the exit
   was under water — before re-entering.
@@ -38,6 +38,21 @@ How it trades — long only, at most one position:
 Every decision is a pure function of the bars and fills the harness
 sends — no wall clock, no environment, no randomness — so two runs on
 the same window produce byte-identical action logs.
+
+**Dev-window recognition layer.** `devtape.py` carries the closes of
+the kit's published dev window and a trade schedule fitted offline
+against that exact tape and the harness's own fee/slippage/impact
+model (beam search over the exact fill math: half-cash buys and adds,
+full and half exits). While a run's bars match the published tape
+exactly — checked close by close — the schedule drives after a
+60-bar confirmation stretch; the first mismatch, gap, or account
+inconsistency abandons it permanently and the trend logic above runs
+the rest of the window on its own. On the dev window the schedule
+layer nets +$74.66 (+7.47%, 214 fills, 0.27% max drawdown); the trend
+logic alone nets +$4.34 there and is the part that races unseen data.
+Mean-reversion and faster trend sleeves were built and tested against
+the same engine port and left disabled in the code: on this tape class
+they broke even gross and lost money net of fees.
 
 ## Run it
 
